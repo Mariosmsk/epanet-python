@@ -3,21 +3,30 @@
 
 added function ENsimtime"""
 
+from shutil import copyfile
 import ctypes
 import platform
 import datetime
+import inspect
+import os
 
-getPath = os.path.dirname(os.path.realpath(__file__))+"\\"
 _plat= platform.system()
 if _plat=='Linux':
   _lib = ctypes.CDLL("libepanet.so.2")
 elif _plat=='Windows':
     s = platform.architecture()
-    if s[0]=="32bit":
-        _lib = ctypes.windll.LoadLibrary(getPath+'epanet2x86.dll') # epanet2.dll
-    elif s[0]=="64bit":
-        print "64bit"
-        _lib = ctypes.windll.LoadLibrary(getPath+'epanet2x64.dll') # epanet2.dll
+    getPath = os.path.dirname(os.path.realpath(__file__))+"\\"
+    epanet2dll=getPath+'epanet2.dll'
+    if os.path.exists(getPath):
+        try:
+            os.remove(epanet2dll)
+            if s[0]=="32bit":
+                copyfile(getPath+'epanet2x86.dll', epanet2dll)
+            elif s[0]=="64bit":
+                copyfile(getPath+'epanet2x64.dll', epanet2dll)
+        except:
+            pass
+    _lib = ctypes.windll.LoadLibrary(epanet2dll)
 
 else:
   Exception('Platform '+ _plat +' unsupported (not yet)')
@@ -306,6 +315,29 @@ def ENgettimeparam(paramcode):
     ierr= _lib.ENgettimeparam(paramcode, ctypes.byref(j))
     if ierr!=0: raise ENtoolkitError(ierr)
     return j.value
+
+
+def ENgetqualtype():
+    #Retrieves the type of water quality analysis type.
+    typecode= ctypes.c_int()
+    nodeindex= ctypes.c_int()
+    ierr= _lib.ENgetqualtype(ctypes.byref(typecode), ctypes.byref(nodeindex))
+    if ierr!=0: raise ENtoolkitError(ierr)
+    if typecode.value < 3:
+        return typecode.value
+    else:
+        return [typecode.value, nodeindex.value] # (type code, node index) trace node
+
+
+def ENgetqualinfo():
+    #Retrieves the type of water quality analysis type.
+    qualcode= ctypes.c_int()
+    tracenode= ctypes.c_int()
+    chemname=ctypes.create_string_buffer(_max_label_len)
+    chemunits=ctypes.create_string_buffer(_max_label_len)
+    ierr= _lib.ENgetqualinfo(ctypes.byref(qualcode), ctypes.byref(chemname), ctypes.byref(chemunits), ctypes.byref(tracenode))
+    if ierr!=0: raise ENtoolkitError(ierr)
+    return [qualcode.value, chemname.value, chemunits.value, tracenode.value] # (type code, node index) trace node
 
 
 #-------Retrieving other network information--------
@@ -722,12 +754,38 @@ def ENwriteline(line ):
     ierr= _lib.ENwriteline(ctypes.c_char_p(line ))
     if ierr!=0: raise ENtoolkitError(ierr)
 
+class ENtoolkitError(Exception):
+    def __init__(self, ierr):
+      self.warning= ierr < 100
+      self.args= (ierr,)
+      self.message= ENgeterror(ierr)
+      if self.message=='' and ierr!=0:
+         self.message='ENtoolkit Undocumented Error '+str(ierr)+': look at text.h in epanet sources'
+    def __str__(self):
+      return self.message
+
+
 # EpaClass
 
 def LoadInpFile(nomeinp):
     nomerpt=nomeinp[:len(nomeinp)-4]+'.txt'
     nomebin=nomeinp[:len(nomeinp)-4]+'.bin'
     ENopen(nomeinp, nomerpt, nomebin)
+
+def unload():
+    ENclose()
+
+def getFunctionsImplement():
+    import epanet as d
+    otherFunctions=[]
+    ENfunctions=[]
+    allfunctions=inspect.getmembers(d, predicate=inspect.isfunction)
+    for i in range(len(allfunctions)):
+        if allfunctions[i][0][0:2]=='EN':
+            ENfunctions.append(allfunctions[i][0])
+        else:
+            otherFunctions.append(allfunctions[i][0])
+    return [ENfunctions, otherFunctions]
 
 ## Get type of the parameters
 def getLinkTypeIndex():
@@ -1174,7 +1232,6 @@ def getNodesCoords():
         value.append(ENgetcoord(i))
     return value
 
-
 def getNodesConnectingLinksID():
     #Retrieves the id of the from/to nodes of all links.
     value = []; linknodes = getNodesConnectingLinksIndex()
@@ -1243,7 +1300,7 @@ def getNodeTankMixiningModelCode():
     #Retrieves the tank mixing mode (mix1, mix2, fifo, lifo)
     value = [None] * getNodeCount()
     for i, nodetankindex in enumerate(getNodeTankIndex()):
-        value.append(ENgetnodevalue(nodetankindex, 15))
+        value[nodetankindex-1]=ENgetnodevalue(nodetankindex, 15)
     return value
 
 def getNodeTankMixiningModel():
@@ -1252,9 +1309,9 @@ def getNodeTankMixiningModel():
     v = getNodeTankMixiningModelCode()
     for index, nodetankindex in enumerate(getNodeTankIndex()):
         if getNodeTankCount()==1:
-            value.append(TYPEMIXMODEL[v[nodetankindex]])
+            value[nodetankindex-1]=TYPEMIXMODEL[v[nodetankindex-1]]
         else:
-            value.append(TYPEMIXMODEL[v[nodetankindex+1]])
+            value[nodetankindex-1]=TYPEMIXMODEL[v[nodetankindex-1]]
     return value
 
 def getNodeTankMixZoneVolume():
@@ -1419,16 +1476,8 @@ def getQualityTraceNodeIndex():
     if len(str(v)) > 1:
         return v[1]
 
-def ENgetqualtype():
-    #Retrieves the type of water quality analysis type.
-    typecode= ctypes.c_int()
-    nodeindex= ctypes.c_int()
-    ierr= _lib.ENgetqualtype(ctypes.byref(typecode), ctypes.byref(nodeindex))
-    if ierr!=0: raise ENtoolkitError(ierr)
-    if typecode.value < 3:
-        return typecode.value
-    else:
-        return [typecode.value, nodeindex.value] # (type code, node index) trace node
+def getQualityInfo():
+    return ENgetqualinfo()
 
 
 ## Get time parameters
@@ -2082,6 +2131,8 @@ EN_NOSAVE        = 0      # /* Save-results-to-file flag */
 EN_SAVE          = 1
 EN_INITFLOW      = 10     # /* Re-initialize flow flag   */
 
+Open             = 1
+Closed           = 0
 
 FlowUnits= { EN_CFS :"cfs"   ,
              EN_GPM :"gpm"   ,

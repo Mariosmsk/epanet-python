@@ -13,15 +13,15 @@ in the array Demands need to be examined.
 The corresponding pressures will be returned.
 To keep the code more readable no exception handling is made."""
 
-import epamodule as em
+import epanet as em
 
 def HydrantRating( MyNode, Demands):
    #Open the EPANET toolkit & hydraulics solver
-   em.ENopen("example2.inp", "example2.rpt")
+   em.ENopen("Net1_Rossman2000.inp", "Net1_Rossman2000.rpt","")
    em.ENopenH()
 
    # Get the index of the node of interest
-   nodeindex= em.ENgetnodeindex(MyNode);
+   nodeindex= em.ENgetnodeindex(MyNode)
 
    rating= []
    # Iterate over all demands
@@ -38,4 +38,4 @@ def HydrantRating( MyNode, Demands):
    return rating
    
 if __name__=='__main__':
-  print  HydrantRating('3', [0.0, 10.0, 20.0, 50.0, 100.0]  )
+  print  HydrantRating('10', [0.0, 10.0, 20.0, 50.0, 100.0]  )
