@@ -1,12 +1,46 @@
 
-import readEpanetFile as d
 
-d.LoadFile('BWSN1_Ostfeld2008.inp') # BWSN1_Ostfeld2008 # Net1_Rossman2000
+import readEpanetFile as d
+from Epa2Shp import epaShp
+
+epaShp('BWSN1_Ostfeld2008.inp')
+
+d.LoadFile('Net1_Rossman2000.inp') # BWSN1_Ostfeld2008 # Net1_Rossman2000 example_temp test
 
 print 'Epanet File Info:'
 print d.BinUpdateClass()
 
-#print d.getBinNodeCoordinates()
+print d.getBinCurvesNameID()
+print d.getBinCurveCount()
+print d.getBinCurvesXY()
+
+print d.getBinLinkInitialStatus()
+print d.getBinLinkInitialStatusNameID()
+
+
+print d.getBinNodeCoordinates()
+print d.getBinNodesConnectingLinksID()
+print d.getBinNodesConnectingLinksIndex()
+
+print d.getBinLinkLength()
+print d.getBinLinkDiameter()
+print d.getBinLinkRoughnessCoeff()
+print d.getBinLinkMinorLossCoeff()
+
+print 'Get Reservoir Index'
+print d.getBinNodeReservoirIndex()
+
+print 'Get Tank Index'
+print d.getBinNodeTankIndex()
+
+print 'Get Pumps index:'
+print d.getBinLinkPumpIndex()
+
+print 'Get Valves index:'
+print d.getBinLinkValveIndex()
+
+print 'Get Node Demand Pattern ID:'
+print d.getBinNodeDemandPatternID()
 
 print 'Get Junction Count:'
 print d.getBinNodeJunctionCount()
@@ -36,19 +70,19 @@ print 'Tank Name IDs:'
 print d.getBinNodeTankNameID()
 
 print 'Get Node Tank Init Level:'
-print d.getBinNodeTankInitLevel()
+print d.getBinNodeTankInitialLevel()
 
 print 'Get Node Tank Min Level:'
-print d.getBinNodeTankMinLevel()
+print d.getBinNodeTankMinimumWaterLevel()
 
 print 'Get Node Tank Max Level:'
-print d.getBinNodeTankMaxLevel()
+print d.getBinNodeTankMaximumWaterLevel()
 
 print 'Get Node Tank Diameter:'
 print d.getBinNodeTankDiameter()
 
 print 'Get Node Tank Min Vol:'
-print d.getBinNodeTankMinVol()
+print d.getBinNodeTankMinimumWaterVolume()
 
 print 'Get Pipe Name ID:'
 print d.getBinLinkPipeNameID()
